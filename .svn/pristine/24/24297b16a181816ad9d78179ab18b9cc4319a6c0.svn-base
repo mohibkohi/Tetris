@@ -1,0 +1,92 @@
+package view;
+
+import control.KeyboardControl;
+
+import java.awt.BorderLayout;
+import javax.swing.JFrame;
+
+
+import model.Board;
+
+/**
+ * Tetris GUI class for every tetris peice. 
+ * @author mohibkohi
+ * @version 1.0
+ */
+public class TetrisGUI extends JFrame {
+    
+    /**
+     * The serial version UID.
+     */
+    private static final long serialVersionUID = 2167516530264875860L;
+
+    /**
+     * Drawing area.
+     */
+    private TetrisGamePanel myGameArea;
+    
+    /**
+     * Drawing area.
+     */
+    private TetrisShapesPanel myShapesArea;
+    /**
+     * Drawing area.
+     */
+    private NextShapePanel myNextShapeArea;
+    
+    /**
+     * Menu bar instance of MenuBar class.
+     */
+    private MenuBar myMenu;
+    
+    /**
+     * Key controls field.
+     */
+    private KeyboardControl myKeyControl;
+    
+    /**
+     * Constructor to set the frame.
+     */
+    public TetrisGUI() {
+        super("Tetris");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        
+        inti();
+        setResizable(false);
+        pack();
+        setLocationRelativeTo(null);
+        setVisible(true);
+    }
+    
+    /**
+     * Initialize the GUIs.
+     */
+    private void inti() {
+        
+        final Board board = new Board();
+        
+        myGameArea = new TetrisGamePanel(board);
+        myShapesArea = new TetrisShapesPanel(myGameArea);
+        
+        myNextShapeArea = new NextShapePanel(board, myGameArea);
+        add(myNextShapeArea, BorderLayout.EAST);
+        
+        myKeyControl = new KeyboardControl(board, myGameArea);
+        addKeyListener(myKeyControl);
+        
+        add(myShapesArea, BorderLayout.CENTER);
+        myMenu = new MenuBar(myGameArea);
+        
+        setJMenuBar(myMenu);
+        
+       
+      
+    }
+    
+    @Override
+    public void addNotify() {
+        super.addNotify();
+        requestFocus();
+    }
+    
+}

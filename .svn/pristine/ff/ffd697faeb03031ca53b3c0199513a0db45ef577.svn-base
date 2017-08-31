@@ -1,0 +1,537 @@
+
+package view;
+
+// import control.KeyboardControl;
+
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.Observable;
+import java.util.Observer;
+import java.util.Random;
+
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
+import javax.sound.sampled.LineUnavailableException;
+import javax.sound.sampled.UnsupportedAudioFileException;
+import javax.swing.ImageIcon;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.Timer;
+
+import model.Block;
+import model.Board;
+import model.MovableTetrisPiece;
+import model.Point;
+import model.TetrisPiece;
+
+/**
+ * Playing game area, an observer class. 
+ * 
+ * @author mohibkohi
+ * @version 1.0.
+ *
+ */
+public class TetrisGamePanel extends JPanel implements Observer {
+
+    /**
+     * Ellipse instance field name.
+     */
+    private static final String GAME_OVER = "Game over";
+
+    /**
+     * A UWT icon from an image file.
+     */
+    private static final ImageIcon GAME_OVER_PIC = new ImageIcon("./images/gameOver.jpg");
+
+    /**
+     * Rows and clumsy.
+     */
+    private static final int ROWS_COLMS = 30;
+
+    /**
+     * The serial version UID.
+     */
+    private static final long serialVersionUID = 6793672164028037355L;
+
+    /**
+     * The initial frames per second at which the simulation will run.
+     */
+    private static final int INITIAL_FRAMES_PER_SECOND = 1;
+
+    /**
+     * The maximum frames per second at which the simulation will run.
+     */
+    //private static final int MAX_FRAMES_PER_SECOND = 60;
+
+    /**
+     * The numerator for delay calculations.
+     */
+    private static final int MY_DELAY_NUMERATOR = 1000;
+
+    /**
+     * Default width of a Tetris game board.
+     */
+    private static final int DEFAULT_WIDTH = 220;
+
+    /**
+     * Default height of a Tetris game board.
+     */
+    private static final int DEFAULT_HEIGHT = 440;
+
+    /**
+     * A UWT icon from an image file.
+     */
+    private static final int Y_DIFF = DEFAULT_HEIGHT - 22;
+
+    /**
+     * Board field.
+     */
+    private Board myBoard;
+
+    /**
+     * Board field.
+     */
+    private List<Block[]> myBlockPieces;
+
+    /**
+     * Block field.
+     */
+    private Block myBlock;
+
+    /**
+     * A timer used to update the state of the simulation.
+     */
+    private Timer myTimer;
+
+    /**
+     * The delay between updates, based on the frames per second setting.
+     */
+    private int myDelay;
+
+    /**
+     * Instance field block.
+     */
+    private MovableTetrisPiece myPiece;
+
+    /**
+     * Block Filed.
+     */
+    private TetrisPiece myTetrisPiece;
+
+    /**
+     * The 4 Points of the TetrisPiece.
+     */
+    private Point[] myPoints;
+
+    /**
+     * X axes of frozen piece .
+     */
+    private int myXPiece;
+
+    /**
+     * Current game is playing or not.
+     */
+    private boolean myGameOn;
+
+    /**
+     * Size of blocks.
+     */
+    private int mySize;
+
+    /**
+     * In the y direction.
+     */
+    private int myYPiece;
+
+    /**
+     * Game over.
+     */
+    private boolean myGameOver;
+
+    /**
+     * Game pause state.
+     */
+    private boolean myGamePause;
+
+    /**
+     * Counter for the lines cleared.
+     */
+    private int myLinesCounter;
+
+    /**
+     * Complete rows.
+     */
+    private Integer[] myCompleteRows;
+
+    /**
+     * My Grid Options.
+     */
+    private boolean myGridOption;
+
+    /**
+     * My random options.
+     */
+    private boolean myPieceRadomColor;
+    
+    /**
+     * My random options.
+     */
+    private boolean myBackgroundRadomColor;
+    
+    /**
+     * Line increment for x axis.
+     */
+    private int myXLineIncrement = 22;
+
+    /**
+     * Line increment for y axis.
+     */
+    private int myYLineIncrement = 22;
+
+    /**
+     * Instance myColor.
+     */
+    private Color myColor;
+    
+    /**
+     * Speed field.
+     */
+    private int mySpeed;
+    
+    /**
+     * Constructor of the panel.
+     * 
+     * @param theBoard board.
+     */
+    public TetrisGamePanel(final Board theBoard) {
+        super();
+        setLayout(new BorderLayout());
+        myBoard = theBoard;
+        myBoard.addObserver(this);
+        setUpTimer();
+
+        myColor = Color.darkGray;
+        
+        // addPropertyChangeListener(myKeyControl);
+        myGameOver = false;
+        setPreferredSize(new Dimension(DEFAULT_WIDTH, DEFAULT_HEIGHT));
+        setBackground(Color.darkGray);
+    }
+
+    /**
+     * Helper method to set up timer.
+     */
+    private void setUpTimer() {
+        myDelay = MY_DELAY_NUMERATOR / INITIAL_FRAMES_PER_SECOND;
+        myTimer = new Timer(myDelay, new ActionListener() {
+
+            @Override
+            public void actionPerformed(final ActionEvent theEvent) {
+                myBoard.step();
+            }
+        });
+    }
+
+    /**
+     * Paints the current path.
+     * 
+     * @param theGraphics The graphics context to use for painting.
+     */
+    @Override
+    public void paintComponent(final Graphics theGraphics) {
+        super.paintComponent(theGraphics);
+
+        final Graphics2D g2d = (Graphics2D) theGraphics;
+
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                             RenderingHints.VALUE_ANTIALIAS_ON);
+        mySize = (getHeight() + getWidth()) / ROWS_COLMS;
+
+        if (myGridOption) {
+            drawGridLines(g2d);
+        }
+        
+        if (myBackgroundRadomColor) {
+            setBackground(randomColorBlocks());
+        } else {
+            setBackground(myColor);
+        }
+        
+
+        if (myBlockPieces != null) {
+            drawBlocks(g2d);
+        }
+
+    }
+    
+    /**
+     * Helper method to draw the Tetris pieces with random colors.
+     * @return randomColor random.
+     */
+    private Color randomColorBlocks() {
+        final Random rand = new Random();
+
+        //Three Random float for a random color.
+        final float r = rand.nextFloat();
+        final float g = rand.nextFloat();
+        final float b = rand.nextFloat();
+
+        return new Color(r, g, b);
+    }
+
+    /**
+     * Helper method to draw the Tetris pieces.
+     * @param theGraphics 2d Graphic.
+     */
+    private void drawBlocks(final Graphics2D theGraphics) {
+        Color color = Color.black;
+        
+        for (final Block[] blocks : myBlockPieces) {
+
+            for (final Block block : blocks) {
+
+                if (block != null) {
+                    if (myPieceRadomColor) {
+                        color = randomColorBlocks();
+                        theGraphics.setColor(color);
+                    } else {
+                        theGraphics.setColor(Color.black);
+                    }
+                    theGraphics.fillRect(myXPiece * mySize + 1, Y_DIFF - myYPiece * mySize + 1,
+                                         mySize - 2, mySize - 2);
+                    if (myPieceRadomColor) {
+                        theGraphics.setColor(color);
+                    } else {
+                        theGraphics.setColor(Color.white);
+                    }
+                    theGraphics.drawRect(myXPiece * mySize + 1, Y_DIFF - myYPiece * mySize + 1,
+                                         mySize - 2, mySize - 2);
+
+                }
+                myXPiece++;
+            }
+            myXPiece = 0;
+            myYPiece++;
+        }
+        myYPiece = 0;
+
+        theGraphics.setFont(new Font("TimesRoman", Font.PLAIN, 30));
+        if (!myGameOn) {
+            theGraphics.setColor(Color.red);
+            theGraphics.drawString("Game Ended", 40, 150);
+        } else if (myGamePause) {
+            theGraphics.setColor(Color.red);
+            theGraphics.drawString("PAUSE", 40, 150);
+        }
+    }
+
+    /**
+     * Helper method to play sound.
+     */
+    private void playSounds() {
+        try {
+            // Open an audio input stream.
+            final File soundFile = new File("./sounds/sound.wav");
+            final AudioInputStream audioIn = AudioSystem.getAudioInputStream(soundFile);
+            // Get a sound clip resource.
+            final Clip clip = AudioSystem.getClip();
+            // Open audio clip and load samples from the audio input stream.
+            clip.open(audioIn);
+            clip.start();
+            clip.loop(Clip.LOOP_CONTINUOUSLY);
+        } catch (final UnsupportedAudioFileException event) {
+            //e.printStackTrace();
+        } catch (final IOException event) {
+            //e.printStackTrace();
+        } catch (final LineUnavailableException event) {
+            //e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Helper method update the speed.
+     * @param theSpeed to change.
+     */
+    public void setSpeed(final int theSpeed) {
+        mySpeed = 1000 - theSpeed * 100;
+        myTimer.setDelay(mySpeed);
+    }
+    /**
+     * Helper method to draw the grid lines.
+     * 
+     * @param theGraphics 2d graphic.
+     */
+    private void drawGridLines(final Graphics2D theGraphics) {
+        int incrementLine = 11;
+        theGraphics.setColor(Color.red);
+        for (int i = 1; i < 11; i++) {
+
+            theGraphics.drawLine(i * myXLineIncrement, 0, i * myXLineIncrement,
+                                 DEFAULT_HEIGHT);
+            theGraphics.drawLine(0, i * myXLineIncrement, DEFAULT_WIDTH, i * myXLineIncrement);
+
+            theGraphics.drawLine(0, incrementLine * myXLineIncrement, DEFAULT_WIDTH,
+                                 incrementLine * myXLineIncrement);
+            incrementLine++;
+        }
+        incrementLine = 0;
+    }
+    
+    @Override
+    public void update(final Observable theObservable, final Object theArg) {
+        
+        myBoard = (Board) theObservable;
+        if (theArg instanceof List) {
+            myBlockPieces = (List<Block[]>) theArg;
+            
+
+        } else if (theArg instanceof Boolean) {
+            myGameOver = (boolean) theArg;
+        } else if (theArg instanceof Integer[]) {
+            myCompleteRows = (Integer[]) theArg;
+            myLinesCounter += myCompleteRows.length;
+            final int timepInt = myTimer.getDelay();
+            if (myLinesCounter > 4) {
+                myTimer.setDelay(timepInt - 100);
+                incrementScore();
+                myLinesCounter -= 4;
+            } else if (myLinesCounter == 4) {
+                myTimer.setDelay(timepInt - 100);
+                incrementScore();
+                myLinesCounter = 0;
+            }
+        }
+        if (myGameOver) {
+            myTimer.stop();
+            JOptionPane.showMessageDialog(null, "TCSS 305 Tetris\nWinter 2016\nMohib Kohi",
+                                          GAME_OVER, JOptionPane.PLAIN_MESSAGE, GAME_OVER_PIC);
+            myGameOver = false;
+            setGameOff();
+        }
+        repaint();
+    }
+
+    /**
+     * Increment the score.
+     */
+    public void incrementScore() {
+        firePropertyChange("Increment", !myGameOver, myGameOver);
+    }
+
+    /**
+     * Fire property change on game over.
+     */
+    public void setGameOff() {
+        firePropertyChange("Off", !myGameOver, myGameOver);
+    }
+
+    /**
+     * Fire property change on new game.
+     */
+    public void setGameOn() {
+        firePropertyChange("On", !myGameOver, myGameOver);
+    }
+
+    /**
+     * New game calls board new game.
+     */
+    public void newGame() {
+        if (!myTimer.isRunning()) {
+            myBoard.newGame();
+            myTimer.setDelay(MY_DELAY_NUMERATOR);
+            setGameOn();
+            
+            setBackground(Color.darkGray);
+            
+            myGameOn = true;
+            myGamePause = false;
+
+            playSounds();
+            // NextShapePanel.setScore(0);
+            myTimer.start();
+        }
+    }
+
+    /**
+     * Set color field.
+     * 
+     * @param theColor of the shape.
+     */
+    public void setColor(final Color theColor) {
+        myColor = theColor;
+    }
+    
+    /**
+     * Access method for the timer.
+     * 
+     * @return myTimer timer.
+     */
+    public boolean isTimerOn() {
+        return myTimer.isRunning();
+    }
+
+    /**
+     * Set pause state of the game.
+     * 
+     * @param theState of the game.
+     */
+    public void setGamePuse(final boolean theState) {
+        if (theState) {
+            myTimer.stop();
+            myGamePause = theState;
+        } else {
+            myTimer.start();
+            myGamePause = theState;
+        }
+        repaint();
+    }
+   
+    /**
+     * Set Random Colors option.
+     * 
+     * @param theRandomOption option to set random colors to true.
+     */
+    public void setBackgroundRandomColor(final boolean theRandomOption) {
+        myBackgroundRadomColor = theRandomOption;
+    }
+    
+    /**
+     * Set Random Colors option.
+     * 
+     * @param theRandomOption option to set random colors to true.
+     */
+    public void setPiecesRandomColor(final boolean theRandomOption) {
+        myPieceRadomColor = theRandomOption;
+    }
+    
+    /**
+     * Set Grids option.
+     * 
+     * @param theGridOption option to turn the grid on.
+     */
+    public void setGridOption(final boolean theGridOption) {
+        myGridOption = theGridOption;
+    }
+
+    /**
+     * End game.
+     */
+    public void endGame() {
+        myGameOn = false;
+        myGamePause = false;
+        myTimer.stop();
+        setGameOff();
+        repaint();
+    }
+}
